@@ -1,0 +1,221 @@
+::[Bat To Exe Converter]
+::
+::YAwzoRdxOk+EWAjk
+::fBw5plQjdCuDJFyA80cMMUpWSAvPbHu5E+BRuLiqoeOErS0=
+::YAwzuBVtJxjWCl3EqQJgSA==
+::ZR4luwNxJguZRRnk
+::Yhs/ulQjdF+5
+::cxAkpRVqdFKZSDk=
+::cBs/ulQjdF+5
+::ZR41oxFsdFKZSDk=
+::eBoioBt6dFKZSDk=
+::cRo6pxp7LAbNWATEpCI=
+::egkzugNsPRvcWATEpCI=
+::dAsiuh18IRvcCxnZtBJQ
+::cRYluBh/LU+EWAnk
+::YxY4rhs+aU+JeA==
+::cxY6rQJ7JhzQF1fEqQJQ
+::ZQ05rAF9IBncCkqN+0xwdVs0
+::ZQ05rAF9IAHYFVzEqQJQ
+::eg0/rx1wNQPfEVWB+kM9LVsJDGQ=
+::fBEirQZwNQPfEVWB+kM9LVsJDGQ=
+::cRolqwZ3JBvQF1fEqQJQ
+::dhA7uBVwLU+EWDk=
+::YQ03rBFzNR3SWATElA==
+::dhAmsQZ3MwfNWATElA==
+::ZQ0/vhVqMQ3MEVWAtB9wSA==
+::Zg8zqx1/OA3MEVWAtB9wSA==
+::dhA7pRFwIByZRRnk
+::Zh4grVQjdCuDJFyA80cMrMOZyvJlu4JSSJEvwG0sKm9idQMYTOdf
+::YB416Ek+ZG8=
+::
+::
+::978f952a14a936cc963da21a135fa983
+@echo off
+title DSH工具 v2.6
+setlocal enabledelayedexpansion
+
+:menu
+cls
+echo ============================================
+echo              DSH工具 v2.6
+echo ============================================
+echo   1  启动DSH网页端
+echo   2  查看DSH版本
+echo   3  添加插件
+echo   4  删除插件（自动把add转为remove）
+echo   5  列出已安装插件
+echo   6  退出程序
+echo   7  初始化web配置文件
+echo ============================================
+echo.
+choice /c 1234567 /m "请选择功能(1-7): "
+
+if errorlevel 7 goto init_profile
+if errorlevel 6 goto exit_script
+if errorlevel 5 goto list_plugin
+if errorlevel 4 goto remove
+if errorlevel 3 goto add
+if errorlevel 2 goto ver
+if errorlevel 1 goto startdsh
+
+:exit_script
+endlocal
+exit
+
+:startdsh
+cls
+echo ============================================
+echo        正在启动DSH网页端
+echo ============================================
+echo   运行期间不要关闭此窗口
+echo   按 Ctrl+C 停止服务
+echo ============================================
+set NODE_OPTIONS=--max-old-space-size=8192
+call npx -y @deepseek-ai/dsh web
+echo.
+echo DSH服务已停止，按任意键返回菜单
+pause >nul
+goto menu
+
+:ver
+cls
+echo -------- DSH版本信息 --------
+set NODE_OPTIONS=--max-old-space-size=8192
+call npx -y @deepseek-ai/dsh --version
+echo.
+pause
+goto menu
+
+:init_profile
+cls
+echo -------- 初始化Web配置 --------
+set NODE_OPTIONS=--max-old-space-size=8192
+call npx -y @deepseek-ai/dsh web
+echo.
+echo 配置初始化完成，按任意键返回菜单
+pause >nul
+goto menu
+
+:add
+cls
+echo -------- 添加插件 --------
+echo 支持三种输入格式：
+echo 【A】纯包名
+echo 【B】子命令        : plugin --profile web add 包名
+echo 【C】dsh开头命令   : dsh plugin --profile web add 包名
+echo.
+set "input="
+set /p input=请输入内容: 
+if not defined input goto menu
+
+echo !input! | findstr /r /i "^dsh " >nul
+if !errorlevel! equ 0 (
+    echo [识别] 以dsh开头的命令
+    set cmd=!input:~4!
+    echo [最终执行命令] npx -y @deepseek-ai/dsh !cmd!
+    call npx -y @deepseek-ai/dsh !cmd!
+    set ret=!errorlevel!
+    goto add_done
+)
+
+echo !input! | findstr /r /i "^npx " >nul
+if !errorlevel! equ 0 (
+    echo [识别] 完整npx命令
+    set cmd=!input!
+    echo [最终执行命令] !cmd!
+    call !cmd!
+    set ret=!errorlevel!
+    goto add_done
+)
+
+echo !input! | findstr /r /i "^plugin --profile" >nul
+if !errorlevel! equ 0 (
+    echo [识别] plugin子命令
+    set cmd=!input!
+    echo [最终执行命令] npx -y @deepseek-ai/dsh !cmd!
+    call npx -y @deepseek-ai/dsh !cmd!
+    set ret=!errorlevel!
+    goto add_done
+)
+
+echo [识别] 插件包名
+set cmd=plugin --profile web add !input!
+echo [最终执行命令] npx -y @deepseek-ai/dsh !cmd!
+call npx -y @deepseek-ai/dsh !cmd!
+set ret=!errorlevel!
+
+:add_done
+if !ret! equ 0 (
+    echo 操作成功
+) else (
+    echo 操作失败！返回码：!ret!
+)
+pause
+goto menu
+
+:remove
+cls
+echo -------- 删除插件 --------
+echo 支持三种输入格式：
+echo 【A】纯包名
+echo 【B】子命令        : plugin --profile web remove 包名
+echo 【C】dsh开头命令   : dsh plugin --profile web add 包名（自动转为remove）
+echo.
+set "input="
+set /p input=请输入内容: 
+if not defined input goto menu
+
+echo !input! | findstr /r /i "^dsh " >nul
+if !errorlevel! equ 0 (
+    echo [识别] 以dsh开头的命令，自动将add替换为remove
+    set cmd=!input:~4!
+    set cmd=!cmd:add=remove!
+    echo [最终执行命令] npx -y @deepseek-ai/dsh !cmd!
+    call npx -y @deepseek-ai/dsh !cmd!
+    set ret=!errorlevel!
+    goto remove_done
+)
+
+echo !input! | findstr /r /i "^npx " >nul
+if !errorlevel! equ 0 (
+    echo [识别] 完整npx命令，自动将add替换为remove
+    set cmd=!input:add=remove!
+    echo [最终执行命令] !cmd!
+    call !cmd!
+    set ret=!errorlevel!
+    goto remove_done
+)
+
+echo !input! | findstr /r /i "^plugin --profile" >nul
+if !errorlevel! equ 0 (
+    echo [识别] plugin子命令，自动将add替换为remove
+    set cmd=!input:add=remove!
+    echo [最终执行命令] npx -y @deepseek-ai/dsh !cmd!
+    call npx -y @deepseek-ai/dsh !cmd!
+    set ret=!errorlevel!
+    goto remove_done
+)
+
+echo [识别] 插件包名
+set cmd=plugin --profile web remove !input!
+echo [最终执行命令] npx -y @deepseek-ai/dsh !cmd!
+call npx -y @deepseek-ai/dsh !cmd!
+set ret=!errorlevel!
+
+:remove_done
+if !ret! equ 0 (
+    echo 删除成功
+) else (
+    echo 删除失败！返回码：!ret!
+)
+pause
+goto menu
+
+:list_plugin
+cls
+echo -------- 已安装插件列表 --------
+call npx -y @deepseek-ai/dsh plugin --profile web list
+echo.
+pause >nul
+goto menu
