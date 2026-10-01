@@ -1,0 +1,191 @@
+## Full Source Code
+```batch
+@echo off
+setlocal enabledelayedexpansion
+
+:menu
+cls
+echo ============================================
+echo              DeepSeekHarness Plugin Tool v2.6
+echo ============================================
+echo   1  Start DeepSeekHarness Web
+echo   2  Check DeepSeekHarness Version
+echo   3  Add Plugin
+echo   4  Remove Plugin (auto convert add to remove)
+echo   5  List Installed Plugins
+echo   6  Exit
+echo   7  Initialize Web Profile
+echo ============================================
+echo.
+echo Please select an option [1,2,3,4,5,6,7]
+choice /c 1234567 /n
+
+if errorlevel 7 goto init_profile
+if errorlevel 6 goto exit_script
+if errorlevel 5 goto list_plugin
+if errorlevel 4 goto remove
+if errorlevel 3 goto add
+if errorlevel 2 goto ver
+if errorlevel 1 goto startdsh
+
+:startdsh
+cls
+echo ============================================
+echo        Starting DeepSeekHarness Web
+echo ============================================
+echo   Do not close this window while running
+echo   Press Ctrl+C to stop the service
+echo ============================================
+set NODE_OPTIONS=--max-old-space-size=8192
+call npx -y @deepseek-ai/dsh web
+echo.
+echo DeepSeekHarness service stopped, press any key to return to menu
+pause >nul
+goto menu
+
+:ver
+cls
+echo -------- DeepSeekHarness Version Info --------
+set NODE_OPTIONS=--max-old-space-size=8192
+call npx -y @deepseek-ai/dsh --version
+echo.
+pause
+goto menu
+
+:init_profile
+cls
+echo -------- Initialize Web Profile --------
+set NODE_OPTIONS=--max-old-space-size=8192
+call npx -y @deepseek-ai/dsh web
+echo.
+echo Profile initialization complete, press any key to return
+pause >nul
+goto menu
+
+:add
+cls
+echo -------- Add Plugin --------
+echo Supports 3 input formats:
+echo 【A】Package name only
+echo 【B】Subcommand        : plugin --profile web add package
+echo 【C】Full command      : deepseekharness plugin --profile web add package
+echo.
+set "input="
+set /p input=Enter content: 
+if not defined input goto menu
+
+echo !input! | findstr /r /i "^deepseekharness " >nul
+if !errorlevel! equ 0 (
+    echo [Detected] Full deepseekharness command
+    set cmd=!input:~14!
+    echo [Final Command] npx -y @deepseek-ai/dsh !cmd!
+    call npx -y @deepseek-ai/dsh !cmd!
+    set ret=!errorlevel!
+    goto add_done
+)
+
+echo !input! | findstr /r /i "^npx " >nul
+if !errorlevel! equ 0 (
+    echo [Detected] Full npx command
+    set cmd=!input!
+    echo [Final Command] !cmd!
+    call !cmd!
+    set ret=!errorlevel!
+    goto add_done
+)
+
+echo !input! | findstr /r /i "^plugin --profile" >nul
+if !errorlevel! equ 0 (
+    echo [Detected] plugin subcommand
+    set cmd=!input!
+    echo [Final Command] npx -y @deepseek-ai/dsh !cmd!
+    call npx -y @deepseek-ai/dsh !cmd!
+    set ret=!errorlevel!
+    goto add_done
+)
+
+echo [Detected] Plugin package name
+set cmd=plugin --profile web add !input!
+echo [Final Command] npx -y @deepseek-ai/dsh !cmd!
+call npx -y @deepseek-ai/dsh !cmd!
+set ret=!errorlevel!
+
+:add_done
+if !ret! equ 0 (
+    echo Operation succeeded
+) else (
+    echo Operation failed! Return code: !ret!
+)
+pause
+goto menu
+
+:remove
+cls
+echo -------- Remove Plugin --------
+echo Supports 3 input formats:
+echo 【A】Package name only
+echo 【B】Subcommand        : plugin --profile web remove package
+echo 【C】Full command      : deepseekharness plugin --profile web add package (auto convert add to remove)
+echo.
+set "input="
+set /p input=Enter content: 
+if not defined input goto menu
+
+echo !input! | findstr /r /i "^deepseekharness " >nul
+if !errorlevel! equ 0 (
+    echo [Detected] Full deepseekharness command, auto convert add to remove
+    set cmd=!input:~14!
+    set cmd=!cmd:add=remove!
+    echo [Final Command] npx -y @deepseek-ai/dsh !cmd!
+    call npx -y @deepseek-ai/dsh !cmd!
+    set ret=!errorlevel!
+    goto remove_done
+)
+
+echo !input! | findstr /r /i "^npx " >nul
+if !errorlevel! equ 0 (
+    echo [Detected] Full npx command, auto convert add to remove
+    set cmd=!input:add=remove!
+    echo [Final Command] !cmd!
+    call !cmd!
+    set ret=!errorlevel!
+    goto remove_done
+)
+
+echo !input! | findstr /r /i "^plugin --profile" >nul
+if !errorlevel! equ 0 (
+    echo [Detected] plugin subcommand, auto convert add to remove
+    set cmd=!input:add=remove!
+    echo [Final Command] npx -y @deepseek-ai/dsh !cmd!
+    call npx -y @deepseek-ai/dsh !cmd!
+    set ret=!errorlevel!
+    goto remove_done
+)
+
+echo [Detected] Plugin package name
+set cmd=plugin --profile web remove !input!
+echo [Final Command] npx -y @deepseek-ai/dsh !cmd!
+call npx -y @deepseek-ai/dsh !cmd!
+set ret=!errorlevel!
+
+:remove_done
+if !ret! equ 0 (
+    echo Plugin removed successfully
+) else (
+    echo Failed to remove plugin! Return code: !ret!
+)
+pause
+goto menu
+
+:list_plugin
+cls
+echo -------- Installed Plugin List --------
+call npx -y @deepseek-ai/dsh plugin --profile web list
+echo.
+pause >nul
+goto menu
+
+:exit_script
+endlocal
+exit
+```
